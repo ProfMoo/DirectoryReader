@@ -8,6 +8,11 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+typedef struct word {
+	char* wordString;
+	int num;
+}word;
+
 char** getFiles(char** files, char* location) {
 
 	char directory[100];
@@ -164,6 +169,15 @@ char** getWordList(char** wordList, char* buff) {
 	return wordList;
 }
 
+word* getFinalAnswer(word* answer, char** wordList, int answerLength) {
+	int i = 0;
+	while (i < 100) {
+		printf("wordList[i]: %s\n", wordList[i]);
+		i++;
+	}
+	return answer;
+}
+
 int main(int argc, char* argv[]) {
 	printf( "argc is %d\n", argc);
 
@@ -200,9 +214,27 @@ int main(int argc, char* argv[]) {
 
 	wordList = getWordList(wordList, buff);
 
-	char** answer = (char**)malloc(16*sizeof(char*));
-	int* answerNums = (int*)malloc(16*sizeof(int*));
-	printf("Allocated parallel arrays to be size 16\n");
+	// char** answer = (char**)malloc(16*sizeof(char*));
+	// int* answerNums = (int*)malloc(16*sizeof(int*));
+	
+
+	//making the actual structs and array list for the answer
+	struct word* answer = malloc(sizeof(struct word)*200);
+
+	printf("Allocated parallel arrays to be size 200\n");
+
+	int a = 0;
+	for( a = 0; a < 16; a++ ) {
+		answer[a].wordString = (char*)malloc(50*sizeof(char));
+		strcpy( answer[a].wordString, "booty");
+		answer[a].num = a;
+	}
+	for( a = 0; a < 16; a++ ) {
+		printf("wordString: %s\n", answer[a].wordString);
+		printf("num: %d\n", answer[a].num = a);
+	}
+
+	answer = getFinalAnswer(answer, wordList, answerLength 200);
 
 	/*
 	code to free at end:
