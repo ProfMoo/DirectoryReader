@@ -24,7 +24,9 @@ typedef struct highlevel {
 	int currentMAX;
 }highlevel;
 
-char** getFiles(char** files, char* location) {
+charpp getFiles(char* location) {
+	charpp files;
+	files.num = 0;
 
 	char directory[100];
 	snprintf(directory, sizeof directory, "%s%s", "/home/drmoo/Documents/CCode/OSHW1/", location);
@@ -66,53 +68,85 @@ char** getFiles(char** files, char* location) {
 
 		if (S_ISREG(buf.st_mode)) {
 			#if DEBUG_MODE
-				printf( " -- regular file \n" );	
+				printf( " -- regular file \n" );
+				fflush(NULL);	
 			#endif
-			strcpy(files[i], file->d_name);
+
+			if (i == 0) {
+				files.data = (char**)malloc( (i+1)*sizeof(char*) );
+			}
+			else {
+				files.data = realloc(files.data, (i+1)*sizeof(char*));
+			}
+
+			files.data[i] = (char*)malloc(50*sizeof(char));	
+			files.num++;
+			strcpy(files.data[i], file->d_name);
 			i += 1;
 		}
 		else if (S_ISDIR(buf.st_mode)) {
 			#if DEBUG_MODE
 				printf( " -- directory \n");
+				fflush(NULL);
 			#endif
 		}
 	}
 	return files;
 }
 
-char* readBuffer(char* location) {
-	/* found good example code for reading in buffer from 'Michael' on stackoverflow.com */
-	char* buff = NULL;
-	FILE* fp = fopen(location, "r");
+char* readBuffer(charpp files) {
+	/*received 'files' of type charpp. has an array of strings of file locations, 
+	and has the amount of files to be read in */
 
-	if (fp == NULL) {
-		perror("ERROR: fopen() failed");
-	}
-	if (fp != NULL) {
-		//go to the end of the file	
-		if (fseek(fp, 0L, SEEK_END) == 0) {
-			long bufsize = ftell(fp); //get size of file
-			if ( bufsize == -1 ) {
-				perror( "ERROR: ftell() failed" );
-			}
 
-			buff = malloc(sizeof(char)* (bufsize+1)); //make buffer file size
+	char* totalBuffer;
+	int currentbuffsize = 0;
+	for( int i = 0; i < files.num; i++ ) {
+		/* found good example code for reading in buffer from 'Michael' on stackoverflow.com */
+		char* buff = NULL;
+		FILE* fp = fopen(files.data[i], "r");
 
-			if ( fseek(fp, 0L, SEEK_SET) != 0 ) {
-				perror( "ERROR: fseek() failed" );
-			}
-
-			size_t newLen = fread(buff, sizeof(char), bufsize, fp); //read into memory
-			if ( ferror(fp) != 0 ) {
-				perror(" ERROR: fread() failed" );
-			}
-			else {
-				buff[newLen++] = '\0';
-			}
+		if (fp == NULL) {
+			perror("ERROR: fopen() failed");
 		}
-		fclose(fp);
-	}
+		if (fp != NULL) {
+			//go to the end of the file	
+			if (fseek(fp, 0L, SEEK_END) == 0) {
+				long bufsize = ftell(fp); //get size of file
+				if ( bufsize == -1 ) {
+					perror( "ERROR: ftell() failed" );
+				}
 
+				buff = malloc(sizeof(char)* (bufsize+1)); //make buffer file size
+
+				if (i == 0) {
+					totalBuffer = malloc(sizeof(char)* (bufsize+1));
+					currentbuffsize = bufsize;
+				}
+				if (i > 0) {
+					totalBuffer = realloc(totalBuffer, sizeof(char)*(bufsize+1+currentbuffsize));
+					currentbuffsize += bufsize;
+				}
+				//printf("buffer.numinside %d\n", buffer.num);
+				//buffer.num += bufsize;
+				//printf("buffer.numinside2 %d\n", buffer.num);
+
+				if ( fseek(fp, 0L, SEEK_SET) != 0 ) {
+					perror( "ERROR: fseek() failed" );
+				}
+
+				size_t newLen = fread(buff, sizeof(char), bufsize, fp); //read into memory
+				if ( ferror(fp) != 0 ) {
+					perror(" ERROR: fread() failed" );
+				}
+				else {
+					buff[newLen++] = '\0';
+				}
+			}
+			fclose(fp);
+		}
+		strcat(totalBuffer,buff);
+	}
 	// //printf("argv: %s\n", location);
 	
 	// char name[80];
@@ -136,7 +170,7 @@ char* readBuffer(char* location) {
 	// 		buff[rc*(80)*(i+1)] = '\0';
 	// 	}
 	// }
-	return buff;
+	return totalBuffer;
 }
 
 char* clearString(char* toclear) {
@@ -187,12 +221,13 @@ charpp getWordList(charpp wordList, char* buff) {
 		singleWord = clearString(singleWord);
 		//printf("buff[i+j]: %d\n", ispunct(buff[i+j]));
 		//fflush(NULL);
-		if (ispunct(buff[i+j])) {
-			i += (j+1);
-		}
-		else {
-			i += j;
-		}
+		i += j;
+		// if (ispunct(buff[i+j])) {
+		// 	i += (j);
+		// }
+		// else {
+		// 	i += j;
+		// }
 	}
 	return wordList;
 }
@@ -236,7 +271,7 @@ highlevel getFinalAnswer(highlevel answer, charpp wordList) {
 
 void printAnswer(highlevel answer, int wordListNum) {
 	int i = 0;
-	printf("ALl done (succesfully read %d words; %d unique words).\n", wordListNum, answer.uniquewords);
+	printf("All done (succesfully read %d words; %d unique words).\n", wordListNum, answer.uniquewords);
 	printf("All words (and corresponding counts are: \n");
 	while (i < answer.uniquewords) {
 		printf("%s -- %d\n", answer.wordarray[i].wordString, answer.wordarray[i].num);
@@ -245,6 +280,7 @@ void printAnswer(highlevel answer, int wordListNum) {
 }
 
 int main(int argc, char* argv[]) {
+	int i, a;
 	#if DEBUG_MODE
 		printf( "argc is %d\n", argc);
 	#endif
@@ -256,26 +292,53 @@ int main(int argc, char* argv[]) {
 	#endif
 
 	//char** files = NULL;
-	char** files = (char**)malloc(5*sizeof(char*));
 
-	int i = 0;
-	for(i = 0; i < 5; i++) {
-		files[i] = (char*)malloc(50*sizeof(char));
-	}
+	// int i = 0;
+	// for(i = 0; i < 5; i++) {
+	// 	files[i] = (char*)malloc(50*sizeof(char));
+	// }
 
-	files = getFiles(files, argv[1]);
+	charpp files = getFiles(argv[1]);
 
 	#if DEBUG_MODE
+		printf("Printing result of getting .txt file names\n");
+		fflush(NULL);
 		i = 0;
-		while (i < 5) {
-			printf("%s\n", files[i]);
+		printf("files.num: %d\n", files.num);
+		while (i < files.num) {
+			printf("%s\n", files.data[i]);
 			i += 1;
 		}
 	#endif
 
-	char* buff = NULL;
+	char* buff;
+	buff = readBuffer(files);
 
-	buff = readBuffer(files[0]);
+	// struct word buff;
+	// buff.wordString = "";
+	// buff.num = 0;
+
+	
+
+	// i = 0;
+	// while (i < files.num) {
+	// 	buffpart = readBuffer(buff, files.data[i]);
+	// 	printf("buff.num: %d\n", buff.num);
+	// 	if (i == 0) {
+	// 		buff.wordString = (char*)malloc((buff.num)*sizeof(char));
+	// 	}
+	// 	if (i > 0) {
+	// 		buff.wordString = realloc(buff.wordString, (buff.num)*sizeof(char));
+	// 	}
+	// 	printf("buffpart: %s\n", buffpart);
+	// 	i++;
+	// 	//strcat(buff.wordString, buffpart);
+	// 	//malloc enough space in string
+	// 	//copy buffpart into buffer string
+	// }
+
+	//char* buff
+	//buff = readBuffer(files.data[0]);
 	//printf("buff: %s\n", buff);
 
 	struct charpp wordListPP;
@@ -286,20 +349,12 @@ int main(int argc, char* argv[]) {
 		wordListPP.data[i] = (char*)malloc(30*sizeof(char));
 	}
 
-	//char** wordList = (char**)malloc(200*sizeof(char*));
-
-
 	wordListPP = getWordList(wordListPP, buff);
 	#if DEBUG_MODE
 		printf("Total number of words: %d\n", wordListPP.num);
 	#endif
-
-	// char** answer = (char**)malloc(16*sizeof(char*));
-	// int* answerNums = (int*)malloc(16*sizeof(int*));
 	
-
 	//making the actual structs and array list for the answer
-	//int answerLength = 200;
 	struct highlevel answerPP;
 	answerPP.wordarray = malloc(sizeof(struct word)*16);
 	answerPP.uniquewords = 0;
@@ -309,18 +364,37 @@ int main(int argc, char* argv[]) {
 
 	printf("Allocated parallel arrays to be size 16\n");
 
-	int a = 0;
+	a = 0;
 	for( a = 0; a < 16; a++ ) {
 		answerPP.wordarray[a].wordString = (char*)malloc(50*sizeof(char));
-
-		//answer[a].wordString = (char*)malloc(50*sizeof(char));
-		//strcpy( answer[a].wordString, "");
-		//answer[a].num = a;
 	}
 
 	answerPP = getFinalAnswer(answerPP, wordListPP);
 
 	printAnswer(answerPP, wordListPP.num);
+
+	/*free all memory*/
+	for ( i = 0; i < answerPP.uniquewords; i++ ) {
+		free(answerPP.wordarray[i].wordString);
+	}
+	//free(answerPP.wordarray[i]);
+	//free(answerPP);
+
+	for ( i = 0; i < wordListPP.num; i++ ) {
+		free(wordListPP.data[i]);
+	}
+	//free(wordListPP.data);
+	//free(wordListPP);
+
+	for ( i = 0; i < files.num; i++ ) {
+		free(files.data[i]);
+	}
+	//free(files.data);
+	//free(files);
+
+	free(buff);
+
+
 	/*
 	code to free at end:
 	for(i = 0, i < 5, i++) {
