@@ -25,11 +25,10 @@ typedef struct highlevel {
 }highlevel;
 
 void getFiles(charpp* files, char* location) {
-	//char directory[100];
-	//snprintf(directory, sizeof directory, "%s%s", "/home/drmoo/Documents/CCode/OSHW1/", location);
+	char directory[100];
+	snprintf(directory, sizeof directory, "%s%s", "/home/drmoo/Documents/CCode/OSHW1/", location);
 
-	DIR* dir = opendir(location);
-	//DIR* dir = opendir(directory);
+	DIR* dir = opendir(directory);
 	struct dirent* file;
 
 	if (dir == NULL) {
@@ -37,8 +36,7 @@ void getFiles(charpp* files, char* location) {
 	}
 
 	int ret;
-	//ret = chdir(directory);
-	ret = chdir(location);
+	ret = chdir(directory);
 
 	if (ret == -1) {
 		perror( "chdir() failed" );
@@ -72,15 +70,13 @@ void getFiles(charpp* files, char* location) {
 			#endif
 
 			if (i == 0) {
-				(*files).data = (char**)calloc((i+1), sizeof(char*));
-				//(*files).data = (char**)malloc( (i+1)*sizeof(char*) );
+				(*files).data = (char**)malloc( (i+1)*sizeof(char*) );
 			}
 			else {
 				(*files).data = realloc((*files).data, (i+1)*sizeof(char*));
 			}
 
-			(*files).data[i] = (char*)calloc(80, sizeof(char));
-			//(*files).data[i] = (char*)malloc(80*sizeof(char));	
+			(*files).data[i] = (char*)malloc(50*sizeof(char));	
 			(*files).num++;
 			strcpy((*files).data[i], file->d_name);
 			i += 1;
@@ -100,27 +96,17 @@ char* readBuffer(charpp* files) {
 	and has the amount of files to be read in */
 
 	int currentbuffsize = 0;
-	char* totalBuffer;
-	#if DEBUG_MODE
-		printf("(*files).num %d\n", (*files).num);
-	#endif
+	//char* bigBuff = NULL;
+	char* totalBuffer = NULL;
 	for( int i = 0; i < (*files).num; i++ ) {
-		#if DEBUG_MODE
-			printf("i: %d\n", i);
-			fflush(NULL);
-		#endif
 		/* found good example code for reading in buffer from 'Michael' on stackoverflow.com */
 		char* buff = NULL;
 		FILE* fp = fopen((*files).data[i], "r");
 
 		if (fp == NULL) {
 			perror("ERROR: fopen() failed");
-			continue;
 		}
 		if (fp != NULL) {
-			#if DEBUG_MODE
-				printf("reading %s\n", (*files).data[i]);
-			#endif
 			//go to the end of the file	
 			if (fseek(fp, 0L, SEEK_END) == 0) {
 				long bufsize = ftell(fp); //get size of file
@@ -128,12 +114,10 @@ char* readBuffer(charpp* files) {
 					perror( "ERROR: ftell() failed" );
 				}
 
-				buff = calloc(bufsize+1, sizeof(char));
-				//buff = malloc(sizeof(char)* (bufsize+1)); //make buffer file size
+				buff = malloc(sizeof(char)* (bufsize+1)); //make buffer file size
 
 				if (i == 0) {
-					totalBuffer = calloc(bufsize+1, sizeof(char));
-					//totalBuffer = malloc(sizeof(char)*(bufsize+1));
+					totalBuffer = malloc(sizeof(char)* (bufsize+1));
 					currentbuffsize = bufsize;
 				}
 				if (i > 0) {
@@ -158,25 +142,9 @@ char* readBuffer(charpp* files) {
 			}
 			fclose(fp);
 		}
-		
-		//sprintf(totalBuffer, "%s", buff);
-		#if DEBUG_MODE
-			printf("adding to totalBuffer this: %s\n", buff);
-		#endif
-		if (i > 0) {
-			strcat(totalBuffer, " ");
-		}
 		strcat(totalBuffer,buff);
-		// #if DEBUG_MODE
-		// 	printf("done adding to totalBuffer this: %s\n", buff);
-		// 	fflush(NULL);
-		// #endif
 		free(buff);
 		buff = NULL;
-		// #if DEBUG_MODE
-		// 	printf("after freeing buff");
-		// 	fflush(NULL);
-		// #endif
 	}
 	// //printf("argv: %s\n", location);
 	
@@ -201,9 +169,6 @@ char* readBuffer(charpp* files) {
 	// 		buff[rc*(80)*(i+1)] = '\0';
 	// 	}
 	// }
-	#if DEBUG_MODE
-		printf("about to return totalBuffer: %s\n", totalBuffer);
-	#endif
 	return totalBuffer;
 }
 
@@ -219,8 +184,7 @@ void getWordList(charpp* wordList, char* buff) {
 		fflush(NULL);
 	#endif
 
-	char* singleWord = (char*)calloc(80, sizeof(char));
-	//char* singleWord = (char*)malloc(80*sizeof(char));
+	char* singleWord = (char*)malloc(30*sizeof(char));
 	int i = 0;
 	int j = 0;
 	int wordCounter = -1;
@@ -236,9 +200,6 @@ void getWordList(charpp* wordList, char* buff) {
 				if(isalpha(buff[i+j])) {
 					singleWord[j] = buff[i+j]; 
 				}
-				// else if(((int)buff[i+j] == 45) && isalpha(buff[i+j+1]) && isalpha(buff[i+j+2])) {
-				// 	singleWord[j] = buff[i+j]; 
-				// }
 				else {
 					break;
 				}
@@ -249,9 +210,6 @@ void getWordList(charpp* wordList, char* buff) {
 		}
 		fflush(NULL);
 		if (j > 1) {
-			(*wordList).data[wordCounter] = (char*)calloc(j+1, sizeof(char));
-			//(*wordList).data[wordCounter] = (char*)malloc((j+1)*sizeof(char));
-			((*wordList).data[wordCounter])[j] = '\0'; 
 			strcpy((*wordList).data[wordCounter], singleWord);
 			(*wordList).num++;
 			#if DEBUG_MODE
@@ -262,11 +220,20 @@ void getWordList(charpp* wordList, char* buff) {
 			wordCounter -= 1;
 		}
 		singleWord = clearString(singleWord);
+		#if DEBUG_MODE
+			//printf("singleWord: %s\n", singleWord);
+		#endif
 		//printf("buff[i+j]: %d\n", ispunct(buff[i+j]));
 		//fflush(NULL);
 		i += j;
+		// if (ispunct(buff[i+j])) {
+		// 	i += (j);
+		// }
+		// else {
+		// 	i += j;
+		// }
 	}
-	//singleWord[0] = '\0';
+	singleWord[0] = '\0';
 	free(singleWord);
 	singleWord = NULL;
 }
@@ -284,12 +251,10 @@ void getFinalAnswer(highlevel* answer, charpp* wordList) {
 				printf("(*answer).currentMAX: %d\n", (*answer).currentMAX);
 			#endif
 			for( ; a < (*answer).currentMAX+16; a++ ) {
-				(*answer).wordarray[a].wordString = calloc(80, sizeof(char));
-				//(*answer).wordarray[a].wordString = (char*)malloc(80*sizeof(char));
+				(*answer).wordarray[a].wordString = (char*)malloc(30*sizeof(char));
 			}
 			(*answer).currentMAX += 16;
 			printf("Re-allocated parallel arrays to be size %d.\n", (*answer).currentMAX);
-			fflush(NULL);
 		}
 		//printf("(*wordList)[i]: %s\n", (*wordList)[i]);
 		int j = 0;
@@ -312,19 +277,11 @@ void getFinalAnswer(highlevel* answer, charpp* wordList) {
 	}
 }
 
-void printAnswer(highlevel* answer, int wordListNum, int printNum, int exclusivePrint) {
+void printAnswer(highlevel* answer, int wordListNum) {
 	int i = 0;
-	printf("All done (successfully read %d words; %d unique words).\n", wordListNum, (*answer).uniquewords);
-	fflush(NULL);
-	if (exclusivePrint == 1) {
-		printf("First %d words (and corresponding counts) are:\n", printNum);\
-		fflush(NULL);
-	}
-	else {
-		printf("All words (and corresponding counts) are:\n");
-		fflush(NULL);
-	}
-	while (i < printNum) {
+	printf("All done (succesfully read %d words; %d unique words).\n", wordListNum, (*answer).uniquewords);
+	printf("All words (and corresponding counts are: \n");
+	while (i < (*answer).uniquewords) {
 		printf("%s -- %d\n", (*answer).wordarray[i].wordString, (*answer).wordarray[i].num);
 		i++;
 	}
@@ -332,15 +289,6 @@ void printAnswer(highlevel* answer, int wordListNum, int printNum, int exclusive
 
 int main(int argc, char* argv[]) {
 	int i, a;
-
-	int printNum = 0;
-	if (argc < 2) {
-		perror( "ERROR: no directory entered\n" );
-		return EXIT_FAILURE;
-	}
-	if (argc == 3) {
-		printNum = atoi(argv[2]);
-	}
 	#if DEBUG_MODE
 		printf( "argc is %d\n", argc);
 	#endif
@@ -349,7 +297,6 @@ int main(int argc, char* argv[]) {
 		printf( "argv[0] is %s\n", argv[0]);
 		printf( "argv[1] is %s\n", argv[1]); //potential directory 
 		printf( "argv[2] is %s\n", argv[2]); //potential output list num
-		printf( "converted argv[2] is %d\n", printNum);
 	#endif
 
 	//char** files = NULL;
@@ -406,13 +353,12 @@ int main(int argc, char* argv[]) {
 	//printf("buff: %s\n", buff);
 
 	struct charpp wordListPP;
-	wordListPP.data = (char**)calloc(15000, sizeof(char*));
-
+	wordListPP.data = (char**)malloc(1000*sizeof(char*));
 	wordListPP.num = 0;
-	// i = 0;
-	// for(i = 0; i < 200; i++) {
-	// 	wordListPP.data[i] = (char*)malloc(80*sizeof(char));
-	// }
+	i = 0;
+	for(i = 0; i < 200; i++) {
+		wordListPP.data[i] = (char*)malloc(30*sizeof(char));
+	}
 
 	getWordList(&wordListPP, buff);
 	#if DEBUG_MODE
@@ -421,30 +367,22 @@ int main(int argc, char* argv[]) {
 	
 	//making the actual structs and array list for the answer
 	struct highlevel answerPP;
-	answerPP.wordarray = (word*)calloc(16, sizeof(struct word));
-	//answerPP.wordarray = (word*)malloc(sizeof(struct word)*16);
+	answerPP.wordarray = (word*)malloc(sizeof(struct word)*16);
 	answerPP.uniquewords = 0;
 	answerPP.currentMAX = 16;
 
 	//struct word* answer = malloc(sizeof(struct word)*answerLength);
 
-	printf("Allocated initial parallel arrays of size 16.\n");
-	fflush(NULL);
+	printf("Allocated parallel arrays to be size 16\n");
 
 	a = 0;
 	for( a = 0; a < 16; a++ ) {
-		answerPP.wordarray[a].wordString = (char*)calloc(80, sizeof(char));
-		//answerPP.wordarray[a].wordString = (char*)malloc(80*sizeof(char));
+		answerPP.wordarray[a].wordString = (char*)malloc(30*sizeof(char));
 	}
 
 	getFinalAnswer(&answerPP, &wordListPP);
 
-	if (printNum != 0) {
-		printAnswer(&answerPP, wordListPP.num, printNum, 1);
-	}
-	else {
-		printAnswer(&answerPP, wordListPP.num, answerPP.uniquewords, 0);
-	}
+	printAnswer(&answerPP, wordListPP.num);
 
 	/*free all memory*/
 	#if DEBUG_MODE
@@ -471,8 +409,8 @@ int main(int argc, char* argv[]) {
 	free(files.data);
 	files.data = NULL;
 
-	free(buff);
 	buff = NULL;
+	free(buff);
 
 
 	/*
