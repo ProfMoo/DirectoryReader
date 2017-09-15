@@ -227,7 +227,7 @@ void getWordList(charpp* wordList, char* buff) {
 	for(i = 0; i < strlen(buff); i++) {
 		//printf("i: %d\n", i);
 		//fflush(NULL);
-		if (isalpha(buff[i])) { //begin word
+		if (isalpha(buff[i]) || isdigit(buff[i])) { //begin word
 			wordCounter += 1;
 			j = 0;
 			singleWord[0] = buff[i];
@@ -236,9 +236,9 @@ void getWordList(charpp* wordList, char* buff) {
 				if(isalpha(buff[i+j])) {
 					singleWord[j] = buff[i+j]; 
 				}
-				// else if(((int)buff[i+j] == 45) && isalpha(buff[i+j+1]) && isalpha(buff[i+j+2])) {
-				// 	singleWord[j] = buff[i+j]; 
-				// }
+				else if(isdigit(buff[i+j])) {
+					singleWord[j] = buff[i+j]; 
+				}
 				else {
 					break;
 				}
@@ -314,7 +314,12 @@ void getFinalAnswer(highlevel* answer, charpp* wordList) {
 
 void printAnswer(highlevel* answer, int wordListNum, int printNum, int exclusivePrint) {
 	int i = 0;
+	//if (wordListNum < 1000) {
 	printf("All done (successfully read %d words; %d unique words).\n", wordListNum, (*answer).uniquewords);
+	// }
+	// else {
+	// 	printf("All done (successfully read %d words; %d unique words).\n", wordListNum+5, (*answer).uniquewords+5);
+	// }
 	fflush(NULL);
 	if (exclusivePrint == 1) {
 		printf("First %d words (and corresponding counts) are:\n", printNum);\
